@@ -1,5 +1,5 @@
-ghost
-=====
+👻 ghost
+=======
 
 `ghost` is a command-line tool for locating overly complex lines of code in Go.
 
@@ -25,10 +25,11 @@ Pass one or multiple Go files:
 ghost file1.go file2.go
 ```
 
-## CLI Options
+### CLI Options
 
 - `-ignore-tests` - Ignore test files.
 - `-max-line-complexity` - The maximum allowed line complexity. (default 5)
+- `-never-fail` - Always exit with 0.
 
 
 Example

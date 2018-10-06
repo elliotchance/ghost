@@ -12,12 +12,15 @@ import (
 
 var fset *token.FileSet
 var currentFunction *ast.FuncDecl
+var hasErrors bool
 var (
 	optionIgnoreTests       bool
 	optionMaxLineComplexity int
+	optionNeverFail         bool
 )
 
 func main() {
+	flag.BoolVar(&optionNeverFail, "never-fail", false, "Always exit with 0.")
 	flag.BoolVar(&optionIgnoreTests, "ignore-tests", false, "Ignore test files.")
 	flag.IntVar(&optionMaxLineComplexity, "max-line-complexity", 5,
 		"The maximum allowed line complexity.")
@@ -46,6 +49,10 @@ func main() {
 
 			checkFunction(fn)
 		}
+	}
+
+	if hasErrors && !optionNeverFail {
+		os.Exit(1)
 	}
 }
 
@@ -211,6 +218,7 @@ func exprComplexity(expr ast.Expr) int {
 }
 
 func printLine(complexity int, line ast.Stmt) {
+	hasErrors = true
 	pos := fset.Position(line.Pos())
 	fmt.Printf("%s:%d: complexity is %d (in %s)\n", pos.Filename, pos.Line,
 		complexity, currentFunction.Name.Name)
