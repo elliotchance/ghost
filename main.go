@@ -93,27 +93,42 @@ func LineComplexity(line ast.Stmt) int {
 		return listComplexity(n.Results)
 
 	case *ast.IfStmt:
-		// TODO: traverse
+		for _, l := range n.Body.List {
+			LineComplexity(l)
+		}
+
 		return exprComplexity(n.Cond)
 
 	case *ast.ForStmt:
-		// TODO: traverse
 		if n.Cond == nil {
 			return 0
+		}
+
+		for _, l := range n.Body.List {
+			LineComplexity(l)
 		}
 
 		return 1 + exprComplexity(n.Cond)
 
 	case *ast.SwitchStmt:
-		// TODO: traverse
 		if n.Tag == nil {
 			return 0
+		}
+
+		for _, l := range n.Body.List {
+			LineComplexity(l)
 		}
 
 		return 1 + exprComplexity(n.Tag)
 
 	case *ast.DeferStmt:
-		// TODO: traverse
+		return exprComplexity(n.Call.Fun)
+
+	case *ast.TypeSwitchStmt:
+		for _, l := range n.Body.List {
+			LineComplexity(l)
+		}
+
 		return 1
 
 	case *ast.RangeStmt:
@@ -128,6 +143,16 @@ func LineComplexity(line ast.Stmt) int {
 		}
 
 		return total
+
+	case *ast.CaseClause:
+		for _, l := range n.Body {
+			LineComplexity(l)
+		}
+
+		return listComplexity(n.List)
+
+	case *ast.IncDecStmt, *ast.BranchStmt:
+		return 1
 
 	default:
 		printLine(-1, line)
@@ -204,13 +229,19 @@ func exprComplexity(expr ast.Expr) int {
 		return exprComplexity(e.X)
 
 	case *ast.FuncLit:
-		// TODO: traverse
+		for _, l := range e.Body.List {
+			LineComplexity(l)
+		}
+
 		return 1
 
 	case *ast.SliceExpr:
 		complexity := exprsComplexity([]ast.Expr{e.Low, e.High, e.Max})
 
 		return 1 + complexity
+
+	case *ast.MapType:
+		return 0
 
 	default:
 		panic(e)
@@ -220,6 +251,7 @@ func exprComplexity(expr ast.Expr) int {
 func printLine(complexity int, line ast.Stmt) {
 	hasErrors = true
 	pos := fset.Position(line.Pos())
+	functionName := currentFunction.Name.Name
 	fmt.Printf("%s:%d: complexity is %d (in %s)\n", pos.Filename, pos.Line,
-		complexity, currentFunction.Name.Name)
+		complexity, functionName)
 }

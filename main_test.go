@@ -18,8 +18,19 @@ func TestLineComplexity(t *testing.T) {
 		node, err := parser.ParseFile(fset, "test.go", line, parser.ParseComments)
 		assert.NoError(t, err)
 
-		//panic(fmt.Sprintf("%#+v", node.Decls[0].(*ast.FuncDecl).Body.List[0]))
 		return LineComplexity(node.Decls[0].(*ast.FuncDecl).Body.List[0])
+	}
+
+	fnSwitch := func(line string) int {
+		line = fmt.Sprintf("package p\nfunc a() { switch { %s } }", line)
+
+		fset = token.NewFileSet()
+		node, err := parser.ParseFile(fset, "test.go", line, parser.ParseComments)
+		assert.NoError(t, err)
+
+		stmts := node.Decls[0].(*ast.FuncDecl).Body.List[0].(*ast.SwitchStmt).Body.List
+
+		return LineComplexity(stmts[0])
 	}
 
 	LC := tf.NamedFunction(t, "Assignment", fn)
@@ -112,7 +123,7 @@ func TestLineComplexity(t *testing.T) {
 	LC(`map[int]int{1: foo(bar("bar")), 3: 4 + 2}`).Returns(2)
 
 	LC = tf.NamedFunction(t, "Defer", fn)
-	LC(`defer foo()`).Returns(1)
+	LC(`defer foo()`).Returns(0)
 	LC(`defer func() {}()`).Returns(1)
 
 	LC = tf.NamedFunction(t, "Paren", fn)
@@ -151,4 +162,16 @@ func TestLineComplexity(t *testing.T) {
 	LC = tf.NamedFunction(t, "Star", fn)
 	LC(`*foo`).Returns(0)
 	LC(`*(foo + bar)`).Returns(1)
+
+	LC = tf.NamedFunction(t, "TypeSwitch", fn)
+	LC(`switch a.(type) {}`).Returns(1)
+
+	LC = tf.NamedFunction(t, "Case", fnSwitch)
+	LC(`case 123:`).Returns(1)
+	LC(`case foo("bar"):`).Returns(1)
+	LC(`case foo(bar()):`).Returns(2)
+	LC(`case foo(bar()), baz(bar(bar())):`).Returns(4)
+
+	LC = tf.NamedFunction(t, "Map", fn)
+	LC(`make(map[string]int)`).Returns(1)
 }
