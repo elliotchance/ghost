@@ -32,7 +32,3 @@
 [[constraint]]
   name = "github.com/elliotchance/tf"
   version = "1.5.0"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/logrusorgru/aurora"
