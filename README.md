@@ -1,5 +1,7 @@
 👻 ghost
-=======
+========
+
+[![Build Status](https://travis-ci.org/elliotchance/ghost.svg?branch=master)](https://travis-ci.org/elliotchance/ghost)
 
 `ghost` is a command-line tool for locating overly complex lines of code in Go.
 
