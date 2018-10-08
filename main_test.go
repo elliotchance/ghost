@@ -180,4 +180,11 @@ func TestLineComplexity(t *testing.T) {
 
 	LC = tf.NamedFunction(t, "TypeSpec", fn)
 	LC(`type Foobar struct{}`).Returns(0)
+
+	LC = tf.NamedFunction(t, "Go", fn)
+	LC(`go func() {}()`).Returns(1)
+
+	LC = tf.NamedFunction(t, "Send", fn)
+	LC(`done <- true`).Returns(0)
+	LC(`done <- foo(bar(baz))`).Returns(2)
 }
