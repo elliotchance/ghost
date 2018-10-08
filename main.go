@@ -124,6 +124,9 @@ func LineComplexity(line ast.Stmt) int {
 	case *ast.DeferStmt:
 		return exprComplexity(n.Call.Fun)
 
+	case *ast.GoStmt:
+		return exprComplexity(n.Call.Fun)
+
 	case *ast.TypeSwitchStmt:
 		for _, l := range n.Body.List {
 			LineComplexity(l)
@@ -163,6 +166,9 @@ func LineComplexity(line ast.Stmt) int {
 
 	case *ast.IncDecStmt, *ast.BranchStmt:
 		return 1
+
+	case *ast.SendStmt:
+		return exprComplexity(n.Value)
 
 	default:
 		printLine(-1, line)
@@ -256,7 +262,12 @@ func exprComplexity(expr ast.Expr) int {
 func printLine(complexity int, line ast.Stmt) {
 	hasErrors = true
 	pos := fset.Position(line.Pos())
-	functionName := currentFunction.Name.Name
+
+	functionName := ""
+	if currentFunction != nil {
+		functionName = currentFunction.Name.Name
+	}
+
 	fmt.Printf("%s:%d: complexity is %d (in %s)\n", pos.Filename, pos.Line,
 		complexity, functionName)
 }
