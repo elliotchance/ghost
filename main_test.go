@@ -174,4 +174,7 @@ func TestLineComplexity(t *testing.T) {
 
 	LC = tf.NamedFunction(t, "Map", fn)
 	LC(`make(map[string]int)`).Returns(1)
+
+	LC = tf.NamedFunction(t, "Chan", fn)
+	LC(`make(chan string)`).Returns(1)
 }

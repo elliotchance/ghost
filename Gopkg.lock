@@ -14,12 +14,6 @@
   version = "v1.5.0"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/logrusorgru/aurora"
-  packages = ["."]
-  revision = "a7b3b318ed4e1ae5b80602b08627267303c68572"
-
-[[projects]]
   name = "github.com/pmezard/go-difflib"
   packages = ["difflib"]
   revision = "792786c7400a136282c1664665ae0a8db921c6c2"
@@ -34,6 +28,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f74a62734b6b638f330fb44250466cb51042511cfb8412c7ec262204a55185de"
+  inputs-digest = "35f16706c2437d1623cd90ca3eb2f1d69f81658b4b5a5bdee32d6304e813953d"
   solver-name = "gps-cdcl"
   solver-version = 1

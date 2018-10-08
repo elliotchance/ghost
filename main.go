@@ -1,12 +1,12 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
 	"os"
-	"flag"
 	"strings"
 )
 
@@ -185,10 +185,11 @@ func listComplexity(exprs []ast.Expr) int {
 
 func exprComplexity(expr ast.Expr) int {
 	switch e := expr.(type) {
-	case nil, *ast.BasicLit, *ast.Ident, *ast.ArrayType:
+	case nil, *ast.BasicLit, *ast.Ident, *ast.ArrayType, *ast.MapType,
+	*ast.ChanType:
 		return 0
 
-	case *ast.UnaryExpr, *ast.TypeAssertExpr:
+	case *ast.UnaryExpr, *ast.TypeAssertExpr, *ast.SelectorExpr:
 		return 1
 
 	case *ast.StarExpr:
@@ -216,9 +217,6 @@ func exprComplexity(expr ast.Expr) int {
 	case *ast.CompositeLit:
 		return listComplexity(e.Elts)
 
-	case *ast.SelectorExpr:
-		return 1
-
 	case *ast.IndexExpr:
 		return 1 + exprComplexity(e.Index)
 
@@ -239,9 +237,6 @@ func exprComplexity(expr ast.Expr) int {
 		complexity := exprsComplexity([]ast.Expr{e.Low, e.High, e.Max})
 
 		return 1 + complexity
-
-	case *ast.MapType:
-		return 0
 
 	default:
 		panic(e)
