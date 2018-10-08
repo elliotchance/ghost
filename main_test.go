@@ -187,4 +187,19 @@ func TestLineComplexity(t *testing.T) {
 	LC = tf.NamedFunction(t, "Send", fn)
 	LC(`done <- true`).Returns(0)
 	LC(`done <- foo(bar(baz))`).Returns(2)
+
+	LC = tf.NamedFunction(t, "Label", fn)
+	LC(`foo:`).Returns(0)
+
+	LC = tf.NamedFunction(t, "Select", fn)
+	LC(`select {}`).Returns(0)
+
+	LC = tf.NamedFunction(t, "Struct", fn)
+	LC(`new(struct{})`).Returns(1)
+
+	LC = tf.NamedFunction(t, "Interface", fn)
+	LC(`new(interface{})`).Returns(1)
+
+	LC = tf.NamedFunction(t, "Block", fn)
+	LC(`{ a := 123 }`).Returns(0)
 }

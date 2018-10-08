@@ -59,6 +59,11 @@ func main() {
 func checkFunction(fn *ast.FuncDecl) {
 	currentFunction = fn
 
+	// Body will be nil for non-Go (external) functions.
+	if fn.Body == nil {
+		return
+	}
+
 	for _, stmt := range fn.Body.List {
 		checkLine(stmt)
 	}
@@ -75,9 +80,19 @@ func checkLine(line ast.Stmt) bool {
 }
 
 func LineComplexity(line ast.Stmt) int {
+	defer func() {
+		if r := recover(); r != nil {
+			printLine(-1, line)
+			panic(r)
+		}
+	}()
+
 	switch n := line.(type) {
-	case nil:
+	case nil, *ast.LabeledStmt, *ast.SelectStmt:
 		return 0
+
+	case *ast.IncDecStmt, *ast.BranchStmt:
+		return 1
 
 	case *ast.AssignStmt:
 		return exprsComplexity(n.Rhs)
@@ -98,6 +113,13 @@ func LineComplexity(line ast.Stmt) int {
 		}
 
 		return exprComplexity(n.Cond)
+
+	case *ast.BlockStmt:
+		for _, l := range n.List {
+			LineComplexity(l)
+		}
+
+		return 0
 
 	case *ast.ForStmt:
 		if n.Cond == nil {
@@ -164,14 +186,10 @@ func LineComplexity(line ast.Stmt) int {
 
 		return listComplexity(n.List)
 
-	case *ast.IncDecStmt, *ast.BranchStmt:
-		return 1
-
 	case *ast.SendStmt:
 		return exprComplexity(n.Value)
 
 	default:
-		printLine(-1, line)
 		panic(n)
 	}
 }
@@ -202,7 +220,7 @@ func listComplexity(exprs []ast.Expr) int {
 func exprComplexity(expr ast.Expr) int {
 	switch e := expr.(type) {
 	case nil, *ast.BasicLit, *ast.Ident, *ast.ArrayType, *ast.MapType,
-	*ast.ChanType:
+	*ast.ChanType, *ast.StructType, *ast.InterfaceType:
 		return 0
 
 	case *ast.UnaryExpr, *ast.TypeAssertExpr, *ast.SelectorExpr:
