@@ -177,4 +177,7 @@ func TestLineComplexity(t *testing.T) {
 
 	LC = tf.NamedFunction(t, "Chan", fn)
 	LC(`make(chan string)`).Returns(1)
+
+	LC = tf.NamedFunction(t, "TypeSpec", fn)
+	LC(`type Foobar struct{}`).Returns(0)
 }
