@@ -139,7 +139,17 @@ func LineComplexity(line ast.Stmt) int {
 
 		total := 0
 		for _, spec := range specs {
-			total += exprsComplexity(spec.(*ast.ValueSpec).Values)
+			switch s := spec.(type) {
+			case *ast.TypeSpec:
+				// TypeSpec is an inline type. There is no complexity for these.
+
+			case *ast.ValueSpec:
+				total += exprsComplexity(s.Values)
+
+			default:
+				printLine(-1, line)
+				panic(n)
+			}
 		}
 
 		return total
