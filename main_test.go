@@ -48,6 +48,7 @@ func TestLineComplexity(t *testing.T) {
 	LC(`foo(1 + 2, "foo")`).Returns(2)
 	LC(`foo(1 + name, "foo")`).Returns(2)
 	LC(`foo(1 + name, "foo" + name)`).Returns(3)
+	LC(`foo(a.b, a.c, a.d, a.e)`).Returns(1)
 
 	LC = tf.NamedFunction(t, "CompositeLiteral", fn)
 	LC(`words := []string{}`).Returns(1)
@@ -89,8 +90,8 @@ func TestLineComplexity(t *testing.T) {
 	LC(`if a || b {}`).Returns(1)
 
 	LC = tf.NamedFunction(t, "Selector", fn)
-	LC(`a.b`).Returns(1)
-	LC(`a.b.c`).Returns(1)
+	LC(`a.b`).Returns(0)
+	LC(`a.b.c`).Returns(0)
 
 	LC = tf.NamedFunction(t, "Declaration", fn)
 	LC(`var a float64`).Returns(0)
@@ -107,7 +108,7 @@ func TestLineComplexity(t *testing.T) {
 
 	LC = tf.NamedFunction(t, "Range", fn)
 	LC(`for range foo {}`).Returns(0)
-	LC(`for range foo.bar {}`).Returns(1)
+	LC(`for range foo.bar {}`).Returns(0)
 	LC(`for range foo("bar") {}`).Returns(1)
 	LC(`for range foo(bar()) {}`).Returns(2)
 
