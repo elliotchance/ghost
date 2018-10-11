@@ -189,7 +189,25 @@ func exprComplexity(expr ast.Expr) int {
 	*ast.ChanType:
 		return 0
 
-	case *ast.UnaryExpr, *ast.TypeAssertExpr, *ast.SelectorExpr:
+	case *ast.SelectorExpr:
+		// SelectorExpr is accessing a variable on a struct, like "foo.bar". A
+		// SelectorExpr must be considered zero complexity for a few reasons:
+		//
+		// 1. To say "foo.bar" you must already have "foo" as a variable to
+		// inspect. So "bar" is viewable by the debugger without any
+		// intermediate step.
+		//
+		// 2. If we consider "foo.bar" to be of complexity 1 then function calls
+		// like "foo(bar.baz, bar.qux)" will increase in complexity with each
+		// argument. For the previous reason there is no need or benefit to
+		// assigning each of the arguments into an intermediate variable to
+		// decrease complexity.
+		//
+		// 3. The two previous rules also hold true when chaining multiple
+		// selectors together like "foo.bar.baz".
+		return 0
+
+	case *ast.UnaryExpr, *ast.TypeAssertExpr:
 		return 1
 
 	case *ast.StarExpr:
