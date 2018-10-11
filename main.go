@@ -251,8 +251,38 @@ func exprComplexity(expr ast.Expr) int {
 		return 1 + exprsComplexity(e.Args)
 
 	case *ast.BinaryExpr:
+		// BinaryExpr is a bit complicated to work out because there are some
+		// edge cases that need to be considered.
+		//
+		// In the general case a binary expression will have a complexity of the
+		// sum of it's left and right side. On top of that one complexity is
+		// added if either side is a function call.
+		//
+		// Catching the function call on either side is important because the
+		// returned value can always be assigned to an intermediate variable and
+		// this is wise because the debugger cannot usually see this value.
+		//
+		// The minimum complexity for any binary expression is one. Even if both
+		// sides have a complexity of zero. This prevents expressions that
+		// contain many nested binary expressions to return an unreasonably low
+		// complexity.
+		//
+		// The logical AND operator ("&&") is a special case when the left side
+		// is an equality test against nil. Since it is very common to use && to
+		// short-circuit a nil access like "c.a != nil && c.a.Foo()" we
+		// effectively ignore the complexity on the left side. This is because
+		// there is no reasonable way to reduce this kind of expression without
+		// just making the code more verbose.
+
 		left := exprComplexity(e.X)
 		right := exprComplexity(e.Y)
+
+		// Catch "&&" nil short-circuit.
+		if x, ok := e.X.(*ast.BinaryExpr); ok && e.Op == token.LAND {
+			if y, ok := x.Y.(*ast.Ident); ok && y.Name == "nil" {
+				return right
+			}
+		}
 
 		if _, ok := e.X.(*ast.CallExpr); ok {
 			left++

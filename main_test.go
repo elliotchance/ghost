@@ -67,6 +67,8 @@ func TestLineComplexity(t *testing.T) {
 	LC(`foo(bar) || baz`).Returns(2)
 	LC(`true || foo(bar)`).Returns(2)
 	LC(`foo(bar) || foo(bar)`).Returns(3)
+	LC(`c.a != nil && c.a.Foo()`).Returns(1)
+	LC(`c.a != nil || c.a.Foo()`).Returns(3)
 
 	LC = tf.NamedFunction(t, "Return", fn)
 	LC(`return`).Returns(0)
