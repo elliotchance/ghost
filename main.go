@@ -11,6 +11,7 @@ import (
 )
 
 var fset *token.FileSet
+var file *ast.File
 var currentFunction *ast.FuncDecl
 var hasErrors bool
 var (
@@ -18,6 +19,7 @@ var (
 	optionMaxLineComplexity int
 	optionNeverFail         bool
 )
+var commentGroupIndex int
 
 func main() {
 	flag.BoolVar(&optionNeverFail, "never-fail", false, "Always exit with 0.")
@@ -35,13 +37,16 @@ func main() {
 			continue
 		}
 
+		var err error
 		fset = token.NewFileSet()
-		node, err := parser.ParseFile(fset, currentFile, nil, parser.ParseComments)
+		file, err = parser.ParseFile(fset, currentFile, nil, parser.ParseComments)
 		if err != nil {
 			panic(err)
 		}
 
-		for _, decl := range node.Decls {
+		commentGroupIndex = 0
+
+		for _, decl := range file.Decls {
 			fn, ok := decl.(*ast.FuncDecl)
 			if !ok {
 				continue
@@ -69,6 +74,20 @@ func checkFunction(fn *ast.FuncDecl) {
 	}
 }
 
+func consumeComment(line ast.Stmt) (comment string) {
+	for commentGroupIndex < len(file.Comments) {
+		commentGroup := file.Comments[commentGroupIndex]
+		if commentGroup.Pos() < line.Pos() {
+			comment += commentGroup.Text() + "\n"
+			commentGroupIndex++
+		} else {
+			break
+		}
+	}
+
+	return
+}
+
 func checkLine(line ast.Stmt) bool {
 	complexity := LineComplexity(line)
 
@@ -80,6 +99,12 @@ func checkLine(line ast.Stmt) bool {
 }
 
 func LineComplexity(line ast.Stmt) int {
+	// Check for ignore comment.
+	comment := consumeComment(line)
+	if strings.Contains(comment, "ghost:ignore") {
+		return 0
+	}
+
 	defer func() {
 		if r := recover(); r != nil {
 			printLine(-1, line)
