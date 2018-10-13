@@ -14,11 +14,14 @@ func TestLineComplexity(t *testing.T) {
 	fn := func(line string) int {
 		line = fmt.Sprintf("package p\nfunc a() { %s }", line)
 
+		var err error
 		fset = token.NewFileSet()
-		node, err := parser.ParseFile(fset, "test.go", line, parser.ParseComments)
+		file, err = parser.ParseFile(fset, "test.go", line, parser.ParseComments)
 		assert.NoError(t, err)
 
-		return LineComplexity(node.Decls[0].(*ast.FuncDecl).Body.List[0])
+		commentGroupIndex = 0
+
+		return LineComplexity(file.Decls[0].(*ast.FuncDecl).Body.List[0])
 	}
 
 	fnSwitch := func(line string) int {
@@ -205,4 +208,8 @@ func TestLineComplexity(t *testing.T) {
 
 	LC = tf.NamedFunction(t, "Block", fn)
 	LC(`{ a := 123 }`).Returns(0)
+
+	LC = tf.NamedFunction(t, "Comment", fn)
+	LC("// foo bar\na := lastName[baz() : foo + bar : qux()]").Returns(4)
+	LC("// ghost:ignore\na := lastName[baz() : foo + bar : qux()]").Returns(0)
 }

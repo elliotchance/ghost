@@ -69,3 +69,15 @@ Now it can be simply written as:
 ```go
 prefixSize = minInt(prefixSize, len(a), len(b))
 ```
+
+
+Ignoring Lines
+--------------
+
+Any comment that contains the string `ghost:ignore` will cause the next
+proceeding line to be ignored:
+
+```go
+// ghost:ignore
+a := lastName[baz() : foo + bar : qux()]
+```
