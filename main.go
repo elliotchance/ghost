@@ -76,6 +76,10 @@ func checkFunction(fn *ast.FuncDecl) {
 }
 
 func consumeComment(line ast.Stmt) (comment string) {
+	if isNil(line) {
+		return
+	}
+
 	for commentGroupIndex < len(file.Comments) {
 		commentGroup := file.Comments[commentGroupIndex]
 		if commentGroup.Pos() < line.Pos() {
@@ -377,4 +381,13 @@ func maxInt(numbers ...int) int {
 	sort.Ints(numbers)
 
 	return numbers[len(numbers)-1]
+}
+
+func isNil(x interface{}) bool {
+	switch x.(type) {
+	case nil:
+		return true
+	}
+
+	return false
 }
