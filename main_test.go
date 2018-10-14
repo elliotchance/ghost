@@ -146,8 +146,10 @@ func TestLineComplexity(t *testing.T) {
 
 	LC = tf.NamedFunction(t, "For", fn)
 	LC(`for {}`).Returns(0)
-	LC(`for true {}`).Returns(1)
-	LC(`for true && false {}`).Returns(2)
+	LC(`for true {}`).Returns(0)
+	LC(`for true && false {}`).Returns(1)
+	LC(`for i := 0; i <= foo(bar()); i++ {}`).Returns(3)
+	LC(`for i := rune('a'); i <= rune('z'); i++ {}`).Returns(2)
 
 	LC = tf.NamedFunction(t, "TypeAssert", fn)
 	LC(`a.(Foo)`).Returns(1)
