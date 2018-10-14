@@ -8,6 +8,7 @@ import (
 	"go/token"
 	"os"
 	"strings"
+	"sort"
 )
 
 var fset *token.FileSet
@@ -147,15 +148,24 @@ func LineComplexity(line ast.Stmt) int {
 		return 0
 
 	case *ast.ForStmt:
-		if n.Cond == nil {
-			return 0
-		}
-
 		for _, l := range n.Body.List {
 			LineComplexity(l)
 		}
 
-		return 1 + exprComplexity(n.Cond)
+		// A "for" statement can contain multiple components. We have to
+		// consider the complexity of each element and only return the maximum
+		// complexity.
+		//
+		// The condComplexity does not have +1 added to it like you would expect
+		// because it is expected that a binary expression containing the
+		// iterator is included in the expression and this can not be further
+		// simplified.
+		initComplexity := LineComplexity(n.Init)
+		condComplexity := exprComplexity(n.Cond)
+		postComplexity := LineComplexity(n.Post)
+		maxComplexity := maxInt(initComplexity, condComplexity, postComplexity)
+
+		return maxComplexity
 
 	case *ast.SwitchStmt:
 		if n.Tag == nil {
@@ -361,4 +371,10 @@ func printLine(complexity int, line ast.Stmt) {
 
 	fmt.Printf("%s:%d: complexity is %d (in %s)\n", pos.Filename, pos.Line,
 		complexity, functionName)
+}
+
+func maxInt(numbers ...int) int {
+	sort.Ints(numbers)
+
+	return numbers[len(numbers)-1]
 }
