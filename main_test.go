@@ -86,7 +86,7 @@ func TestLineComplexity(t *testing.T) {
 
 	LC = tf.NamedFunction(t, "Unary", fn)
 	LC(`!foo`).Returns(1)
-	LC(`&foo`).Returns(1)
+	LC(`&foo`).Returns(0)
 	LC(`!!foo`).Returns(1)
 
 	LC = tf.NamedFunction(t, "If", fn)

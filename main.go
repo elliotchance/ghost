@@ -256,6 +256,36 @@ func listComplexity(exprs []ast.Expr) int {
 	return total
 }
 
+// SelectorExpr is accessing a variable on a struct, like "foo.bar". A
+// SelectorExpr must be considered zero complexity for a few reasons:
+//
+// 1. To say "foo.bar" you must already have "foo" as a variable to inspect. So
+// "bar" is viewable by the debugger without any intermediate step.
+//
+// 2. If we consider "foo.bar" to be of complexity 1 then function calls like
+// "foo(bar.baz, bar.qux)" will increase in complexity with each argument. For
+// the previous reason there is no need or benefit to assigning each of the
+// arguments into an intermediate variable to decrease complexity.
+//
+// 3. The two previous rules also hold true when chaining multiple selectors
+// together like "foo.bar.baz".
+func checkSelectorExpr(_ *ast.SelectorExpr) int {
+	return 0
+}
+
+// A UnaryExpr will be be 1 except for the case of "&" which is 0 complexity.
+//
+// The "&" operator must be zero because the returned value isn't really useful
+// to inspect and it's very common to pass a variable by reference as a function
+// argument which would increase the overall complexity.
+func checkUnaryExpr(e *ast.UnaryExpr) int {
+	if e.Op == token.AND {
+		return 0
+	}
+
+	return 1
+}
+
 func exprComplexity(expr ast.Expr) int {
 	switch e := expr.(type) {
 	case nil, *ast.BasicLit, *ast.Ident, *ast.ArrayType, *ast.MapType,
@@ -263,24 +293,12 @@ func exprComplexity(expr ast.Expr) int {
 		return 0
 
 	case *ast.SelectorExpr:
-		// SelectorExpr is accessing a variable on a struct, like "foo.bar". A
-		// SelectorExpr must be considered zero complexity for a few reasons:
-		//
-		// 1. To say "foo.bar" you must already have "foo" as a variable to
-		// inspect. So "bar" is viewable by the debugger without any
-		// intermediate step.
-		//
-		// 2. If we consider "foo.bar" to be of complexity 1 then function calls
-		// like "foo(bar.baz, bar.qux)" will increase in complexity with each
-		// argument. For the previous reason there is no need or benefit to
-		// assigning each of the arguments into an intermediate variable to
-		// decrease complexity.
-		//
-		// 3. The two previous rules also hold true when chaining multiple
-		// selectors together like "foo.bar.baz".
-		return 0
+		return checkSelectorExpr(e)
 
-	case *ast.UnaryExpr, *ast.TypeAssertExpr:
+	case *ast.UnaryExpr:
+		return checkUnaryExpr(e)
+
+	case *ast.TypeAssertExpr:
 		return 1
 
 	case *ast.StarExpr:
@@ -290,50 +308,7 @@ func exprComplexity(expr ast.Expr) int {
 		return 1 + exprsComplexity(e.Args)
 
 	case *ast.BinaryExpr:
-		// BinaryExpr is a bit complicated to work out because there are some
-		// edge cases that need to be considered.
-		//
-		// In the general case a binary expression will have a complexity of the
-		// sum of it's left and right side. On top of that one complexity is
-		// added if either side is a function call.
-		//
-		// Catching the function call on either side is important because the
-		// returned value can always be assigned to an intermediate variable and
-		// this is wise because the debugger cannot usually see this value.
-		//
-		// The minimum complexity for any binary expression is one. Even if both
-		// sides have a complexity of zero. This prevents expressions that
-		// contain many nested binary expressions to return an unreasonably low
-		// complexity.
-		//
-		// The logical AND operator ("&&") is a special case when the left side
-		// is an equality test against nil. Since it is very common to use && to
-		// short-circuit a nil access like "c.a != nil && c.a.Foo()" we
-		// effectively ignore the complexity on the left side. This is because
-		// there is no reasonable way to reduce this kind of expression without
-		// just making the code more verbose.
-
-		left := exprComplexity(e.X)
-		right := exprComplexity(e.Y)
-
-		// Catch "&&" nil short-circuit.
-		if x, ok := e.X.(*ast.BinaryExpr); ok && e.Op == token.LAND {
-			if y, ok := x.Y.(*ast.Ident); ok && y.Name == "nil" {
-				return right
-			}
-		}
-
-		if _, ok := e.X.(*ast.CallExpr); ok {
-			left++
-		} else if _, ok := e.Y.(*ast.CallExpr); ok {
-			right++
-		}
-
-		if left+right == 0 {
-			return 1
-		}
-
-		return left + right
+		return checkBinaryExpr(e)
 
 	case *ast.CompositeLit:
 		return listComplexity(e.Elts)
@@ -362,6 +337,50 @@ func exprComplexity(expr ast.Expr) int {
 	default:
 		panic(e)
 	}
+}
+
+// BinaryExpr is a bit complicated to work out because there are some edge cases
+// that need to be considered.
+//
+// In the general case a binary expression will have a complexity of the sum of
+// it's left and right side. On top of that one complexity is added if either
+// side is a function call.
+//
+// Catching the function call on either side is important because the returned
+// value can always be assigned to an intermediate variable and this is wise
+// because the debugger cannot usually see this value.
+//
+// The minimum complexity for any binary expression is one. Even if both sides
+// have a complexity of zero. This prevents expressions that contain many nested
+// binary expressions to return an unreasonably low complexity.
+//
+// The logical AND operator ("&&") is a special case when the left side is an
+// equality test against nil. Since it is very common to use && to short-circuit
+// a nil access like "c.a != nil && c.a.Foo()" we effectively ignore the
+// complexity on the left side. This is because there is no reasonable way to
+// reduce this kind of expression without just making the code more verbose.
+func checkBinaryExpr(e *ast.BinaryExpr) int {
+	left := exprComplexity(e.X)
+	right := exprComplexity(e.Y)
+
+	// Catch "&&" nil short-circuit.
+	if x, ok := e.X.(*ast.BinaryExpr); ok && e.Op == token.LAND {
+		if y, ok := x.Y.(*ast.Ident); ok && y.Name == "nil" {
+			return right
+		}
+	}
+
+	if _, ok := e.X.(*ast.CallExpr); ok {
+		left++
+	} else if _, ok := e.Y.(*ast.CallExpr); ok {
+		right++
+	}
+
+	if left+right == 0 {
+		return 1
+	}
+
+	return left + right
 }
 
 func printLine(complexity int, line ast.Stmt) {
